@@ -1,4 +1,4 @@
-ame: Publish Collection
+name: Publish Collection
 on:
   push:
     tags:
