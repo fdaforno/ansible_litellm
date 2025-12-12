@@ -1,0 +1,19 @@
+ame: Publish Collection
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build collection
+        run: ansible-galaxy collection build
+
+      - name: Publish to Galaxy
+        env:
+          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
+        run: ansible-galaxy collection publish *.tar.gz --token $ANSIBLE_GALAXY_TOKEN
