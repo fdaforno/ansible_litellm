@@ -1,0 +1,20 @@
+---
+namespace: fdaforno
+name: ansible_litellm
+version: 1.0.0
+readme: README.md
+authors:
+  - Federico Daforno
+
+description: Ansible collection for managing LiteLLM - Team, Virtual Key, Model and Endpoint management
+
+license:
+  - MIT
+
+tags:
+  - litellm
+  - ai
+  - llm
+  - api
+
+repository: https://github.com/fdaforno/ansible-collection-litellm

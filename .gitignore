@@ -1,0 +1,27 @@
+# Ignore compiled Python files
+*.pyc
+
+# Ignore Python cache directories
+__pycache__/
+
+# Ignore compressed files
+*.tar.gz
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Ansible retry files
+*.retry
+
+# Ignore IDE and editor configuration files
+.vscode/
+.idea/
+
+# Ignore temporary files
+*.swp
+*~
+TESTING.md
+test_setup.cfg
+INSTALL.md
+CHAGELOG.md
+

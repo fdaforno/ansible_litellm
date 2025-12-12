@@ -1,0 +1,181 @@
+---
+# Model and Endpoint Management Example
+# This playbook demonstrates how to manage models and endpoints in LiteLLM
+
+- name: Manage LiteLLM - Models and Endpoints
+  hosts: localhost
+  gather_facts: false
+  
+  vars:
+    litellm_api_url: "https://your-litellm-instance.com"
+    # IMPORTANT: Never insert the API key directly here
+    # Use ansible-vault or environment variables
+    litellm_master_key: "{{ lookup('env', 'LITELLM_MASTER_KEY') }}"
+    openai_api_key: "{{ lookup('env', 'OPENAI_API_KEY') }}"
+    azure_api_key: "{{ lookup('env', 'AZURE_OPENAI_API_KEY') }}"
+    azure_api_base: "{{ lookup('env', 'AZURE_OPENAI_API_BASE') }}"
+    anthropic_api_key: "{{ lookup('env', 'ANTHROPIC_API_KEY') }}"
+  
+  collections:
+    - fdaforno.ansible_collection_litellm
+  
+  tasks:
+    # ===== MODEL MANAGEMENT =====
+    
+    - name: Add GPT-4 model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "gpt-4"
+        litellm_params:
+          model: "gpt-4"
+          api_key: "{{ openai_api_key }}"
+        model_info:
+          description: "OpenAI GPT-4"
+          max_tokens: 8192
+          input_cost_per_token: 0.00003
+          output_cost_per_token: 0.00006
+          litellm_provider: "openai"
+          mode: "chat"
+        state: present
+    
+    - name: Add GPT-3.5 Turbo model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "gpt-3.5-turbo"
+        litellm_params:
+          model: "gpt-3.5-turbo"
+          api_key: "{{ openai_api_key }}"
+        model_info:
+          description: "OpenAI GPT-3.5 Turbo"
+          max_tokens: 4096
+          input_cost_per_token: 0.0000015
+          output_cost_per_token: 0.000002
+          litellm_provider: "openai"
+          mode: "chat"
+        state: present
+    
+    - name: Add Claude-3 Opus model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "claude-3-opus"
+        litellm_params:
+          model: "claude-3-opus-20240229"
+          api_key: "{{ anthropic_api_key }}"
+        model_info:
+          description: "Anthropic Claude-3 Opus"
+          max_tokens: 4096
+          input_cost_per_token: 0.000015
+          output_cost_per_token: 0.000075
+          litellm_provider: "anthropic"
+          mode: "chat"
+        state: present
+    
+    - name: Add Azure OpenAI GPT-4 model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "azure-gpt-4"
+        litellm_params:
+          model: "azure/gpt-4"
+          api_key: "{{ azure_api_key }}"
+          api_base: "{{ azure_api_base }}"
+          api_version: "2023-12-01"
+        model_info:
+          description: "Azure OpenAI GPT-4"
+          max_tokens: 8192
+          litellm_provider: "azure"
+          mode: "chat"
+        state: present
+    
+    - name: Add text embedding model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "text-embedding-ada-002"
+        litellm_params:
+          model: "text-embedding-ada-002"
+          api_key: "{{ openai_api_key }}"
+        model_info:
+          description: "OpenAI Text Embedding ADA-002"
+          max_tokens: 8191
+          input_cost_per_token: 0.0000001
+          output_cost_per_token: 0.0000001
+          litellm_provider: "openai"
+          mode: "embedding"
+        state: present
+    
+    # ===== ENDPOINT MANAGEMENT =====
+    
+    - name: Add OpenAI production endpoint
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "openai-prod"
+        api_base: "https://api.openai.com/v1"
+        provider: "openai"
+        endpoint_api_key: "{{ openai_api_key }}"
+        metadata:
+          environment: "production"
+          region: "global"
+          provider: "openai"
+          status: "active"
+        state: present
+    
+    - name: Add Azure OpenAI endpoint (East US)
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "azure-eastus"
+        api_base: "{{ azure_api_base }}"
+        provider: "azure"
+        endpoint_api_key: "{{ azure_api_key }}"
+        api_version: "2023-12-01"
+        metadata:
+          environment: "production"
+          region: "eastus"
+          provider: "azure"
+          status: "active"
+        state: present
+    
+    - name: Add Anthropic endpoint
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "anthropic-prod"
+        api_base: "https://api.anthropic.com"
+        provider: "anthropic"
+        endpoint_api_key: "{{ anthropic_api_key }}"
+        metadata:
+          environment: "production"
+          region: "global"
+          provider: "anthropic"
+          status: "active"
+        state: present
+    
+    - name: Add development OpenAI endpoint
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "openai-dev"
+        api_base: "https://api.openai.com/v1"
+        provider: "openai"
+        endpoint_api_key: "{{ openai_api_key }}"
+        metadata:
+          environment: "development"
+          region: "global"
+          provider: "openai"
+          status: "active"
+        state: present
+    
+    # ===== DISPLAY RESULTS =====
+    
+    - name: Display created models
+      debug:
+        msg: "Models configured successfully"
+    
+    - name: Display created endpoints
+      debug:
+        msg: "Endpoints configured successfully"

@@ -1,0 +1,220 @@
+---
+# Complete example of using the fdaforno.ansible_collection_litellm collection
+# This playbook demonstrates how to manage teams and virtual keys in LiteLLM
+
+- name: Manage LiteLLM - Teams and Virtual Keys
+  hosts: localhost
+  gather_facts: false
+  
+  vars:
+    litellm_api_url: "https://your-litellm-instance.com"
+    # IMPORTANT: Never insert the API key directly here
+    # Use ansible-vault or environment variables
+    litellm_master_key: "{{ lookup('env', 'LITELLM_MASTER_KEY') }}"
+  
+  collections:
+    - fdaforno.ansible_collection_litellm
+  
+  tasks:
+    # ===== TEAM MANAGEMENT =====
+    
+    - name: Create Data Science team
+      litellm_team:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        name: "data-science-team"
+        max_budget: 1000.0
+        models:
+          - gpt-4
+          - gpt-3.5-turbo
+          - claude-3-opus
+        metadata:
+          department: "AI Research"
+          cost_center: "R&D"
+          owner: "john.doe@example.com"
+        state: present
+      register: ds_team
+    
+    - name: Display created team information
+      debug:
+        msg: "Team ID: {{ ds_team.team.team_id }}"
+    
+    - name: Create Engineering team
+      litellm_team:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        name: "engineering-team"
+        max_budget: 2000.0
+        models:
+          - gpt-4
+          - gpt-3.5-turbo
+        metadata:
+          department: "Engineering"
+          cost_center: "Product"
+        state: present
+      register: eng_team
+    
+    # ===== VIRTUAL KEY MANAGEMENT =====
+    
+    - name: Create virtual key for Data Science (Production)
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "ds-team-prod-key"
+        team_id: "{{ ds_team.team.team_id }}"
+        models:
+          - gpt-4
+          - gpt-3.5-turbo
+        max_budget: 500.0
+        budget_duration: "30d"
+        tpm_limit: 100000
+        rpm_limit: 1000
+        metadata:
+          environment: "production"
+          purpose: "ML model training"
+        state: present
+      register: ds_prod_key
+    
+    - name: Save the virtual key securely
+      debug:
+        msg: "WARNING: Save this key in a safe place: {{ ds_prod_key.virtual_key.key }}"
+      when: ds_prod_key.changed
+    
+    - name: Create virtual key for Data Science (Development)
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "ds-team-dev-key"
+        team_id: "{{ ds_team.team.team_id }}"
+        models:
+          - gpt-3.5-turbo
+        max_budget: 100.0
+        budget_duration: "30d"
+        tpm_limit: 50000
+        rpm_limit: 500
+        metadata:
+          environment: "development"
+        state: present
+    
+    - name: Create temporary virtual key for testing
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "temp-test-key"
+        team_id: "{{ eng_team.team.team_id }}"
+        models:
+          - gpt-3.5-turbo
+        max_budget: 50.0
+        expires: "2025-12-31T23:59:59"
+        metadata:
+          environment: "testing"
+          auto_expire: true
+        state: present
+    
+    - name: Create virtual key for Engineering with high limits
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "eng-team-prod-key"
+        team_id: "{{ eng_team.team.team_id }}"
+        max_budget: 1000.0
+        budget_duration: "30d"
+        tpm_limit: 200000
+        rpm_limit: 2000
+        max_parallel_requests: 50
+        metadata:
+          environment: "production"
+          critical: true
+        state: present
+    
+    # ===== MODEL MANAGEMENT =====
+    
+    - name: Add GPT-4 model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "gpt-4"
+        litellm_params:
+          model: "gpt-4"
+          api_key: "{{ openai_api_key }}"
+        model_info:
+          description: "OpenAI GPT-4"
+          max_tokens: 8192
+          input_cost_per_token: 0.00003
+          output_cost_per_token: 0.00006
+        state: present
+    
+    - name: Add GPT-3.5 Turbo model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "gpt-3.5-turbo"
+        litellm_params:
+          model: "gpt-3.5-turbo"
+          api_key: "{{ openai_api_key }}"
+        model_info:
+          description: "OpenAI GPT-3.5 Turbo"
+          max_tokens: 4096
+          input_cost_per_token: 0.0000015
+          output_cost_per_token: 0.000002
+        state: present
+    
+    - name: Add Azure OpenAI GPT-4 model
+      litellm_model:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        model_name: "azure-gpt-4"
+        litellm_params:
+          model: "azure/gpt-4"
+          api_key: "{{ azure_openai_api_key }}"
+          api_base: "{{ azure_openai_api_base }}"
+          api_version: "2023-12-01"
+        model_info:
+          description: "Azure OpenAI GPT-4"
+          max_tokens: 8192
+        state: present
+    
+    # ===== ENDPOINT MANAGEMENT =====
+    
+    - name: Add OpenAI production endpoint
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "openai-prod"
+        api_base: "https://api.openai.com/v1"
+        provider: "openai"
+        endpoint_api_key: "{{ openai_api_key }}"
+        metadata:
+          environment: "production"
+          region: "global"
+          provider: "openai"
+        state: present
+    
+    - name: Add Azure OpenAI endpoint
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "azure-eastus"
+        api_base: "{{ azure_openai_api_base }}"
+        provider: "azure"
+        endpoint_api_key: "{{ azure_openai_api_key }}"
+        api_version: "2023-12-01"
+        metadata:
+          environment: "production"
+          region: "eastus"
+          provider: "azure"
+        state: present
+    
+    - name: Add Anthropic endpoint
+      litellm_endpoint:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        endpoint_name: "anthropic-prod"
+        api_base: "https://api.anthropic.com"
+        provider: "anthropic"
+        endpoint_api_key: "{{ anthropic_api_key }}"
+        metadata:
+          environment: "production"
+          region: "global"
+          provider: "anthropic"
+        state: present

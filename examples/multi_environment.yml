@@ -1,0 +1,72 @@
+---
+# Example: Multi-environment management (dev, staging, prod)
+
+- name: Setup LiteLLM for all environments
+  hosts: localhost
+  gather_facts: false
+  
+  vars:
+    litellm_api_url: "https://your-litellm-instance.com"
+    litellm_master_key: "{{ lookup('env', 'LITELLM_MASTER_KEY') }}"
+    
+    environments:
+      - name: development
+        budget: 100
+        tpm: 50000
+        rpm: 500
+      - name: staging
+        budget: 300
+        tpm: 100000
+        rpm: 1000
+      - name: production
+        budget: 1000
+        tpm: 200000
+        rpm: 2000
+  
+  collections:
+    - fdaforno.ansible_collection_litellm
+  
+  tasks:
+    - name: Create main team
+      litellm_team:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        name: "platform-team"
+        max_budget: 2000.0
+        models:
+          - gpt-4
+          - gpt-3.5-turbo
+        metadata:
+          managed_by: "ansible"
+          created_at: "{{ ansible_date_time.iso8601 }}"
+        state: present
+      register: platform_team
+    
+    - name: Create virtual key for each environment
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "platform-{{ item.name }}-key"
+        team_id: "{{ platform_team.team.team_id }}"
+        max_budget: "{{ item.budget }}"
+        budget_duration: "30d"
+        tpm_limit: "{{ item.tpm }}"
+        rpm_limit: "{{ item.rpm }}"
+        metadata:
+          environment: "{{ item.name }}"
+          managed_by: "ansible"
+        state: present
+      loop: "{{ environments }}"
+      register: env_keys
+    
+    - name: Save generated keys to a file (WARNING: protect this file!)
+      copy:
+        content: |
+          # LiteLLM Virtual Keys - CONFIDENTIAL
+          # Generated: {{ ansible_date_time.iso8601 }}
+          {% for result in env_keys.results %}
+          {{ result.virtual_key.key_name }}: {{ result.virtual_key.key }}
+          {% endfor %}
+        dest: "/tmp/litellm_keys_{{ ansible_date_time.epoch }}.txt"
+        mode: '0600'
+      when: env_keys.changed

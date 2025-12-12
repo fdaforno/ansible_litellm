@@ -1,0 +1,55 @@
+---
+# Example: Updating existing teams and virtual keys
+
+- name: Update LiteLLM configurations
+  hosts: localhost
+  gather_facts: false
+  
+  vars:
+    litellm_api_url: "https://your-litellm-instance.com"
+    litellm_master_key: "{{ lookup('env', 'LITELLM_MASTER_KEY') }}"
+  
+  collections:
+    - fdaforno.ansible_collection_litellm
+  
+  tasks:
+    - name: Increase Data Science team budget
+      litellm_team:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        name: "data-science-team"
+        max_budget: 2000.0  # Increased from 1000 to 2000
+        state: present
+    
+    - name: Add model to the team
+      litellm_team:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        name: "data-science-team"
+        models:
+          - gpt-4
+          - gpt-3.5-turbo
+          - claude-3-opus
+          - claude-3-sonnet  # New model added
+        state: present
+    
+    - name: Increase production virtual key limits
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "ds-team-prod-key"
+        tpm_limit: 200000  # Increased from 100000
+        rpm_limit: 2000    # Increased from 1000
+        state: present
+    
+    - name: Update key metadata
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_alias: "ds-team-prod-key"
+        metadata:
+          environment: "production"
+          purpose: "ML model training"
+          last_updated: "2025-12-11"
+          approved_by: "tech-lead"
+        state: present

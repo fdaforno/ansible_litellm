@@ -1,0 +1,39 @@
+---
+# Example: Removing teams and virtual keys
+
+- name: Cleanup LiteLLM resources
+  hosts: localhost
+  gather_facts: false
+  
+  vars:
+    litellm_api_url: "https://your-litellm-instance.com"
+    litellm_master_key: "{{ lookup('env', 'LITELLM_MASTER_KEY') }}"
+  
+  collections:
+    - fdaforno.ansible_collection_litellm
+  
+  tasks:
+    - name: Delete temporary virtual key
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_id: "sk-xxxxxxxxxxxxxxxxx"  # Replace with the real ID
+        state: absent
+    
+    - name: Delete all virtual keys of a team before deleting the team
+      litellm_virtual_key:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        key_id: "{{ item }}"
+        state: absent
+      loop:
+        - "sk-key-1"
+        - "sk-key-2"
+        - "sk-key-3"
+    
+    - name: Delete test team
+      litellm_team:
+        api_url: "{{ litellm_api_url }}"
+        api_key: "{{ litellm_master_key }}"
+        team_id: "team-test-123"
+        state: absent
