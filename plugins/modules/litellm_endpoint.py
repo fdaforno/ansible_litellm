@@ -189,25 +189,32 @@ class LiteLLMEndpointManager:
 
     def get_endpoints(self):
         """Recupera le informazioni di tutti gli endpoint (modelli con api_base)"""
-        response = self._make_request('GET', '/model/info')
-        
-        if response.status_code == 200:
-            data = response.json()
-            endpoints = []
-            if 'data' in data:
-                for model in data['data']:
-                    if 'litellm_params' in model and 'api_base' in model['litellm_params']:
-                        # Consideriamo questo come un endpoint
-                        endpoint_info = {
-                            'endpoint_name': model.get('model_name', 'unknown'),
-                            'api_base': model['litellm_params']['api_base'],
-                            'provider': self._extract_provider(model['litellm_params']),
-                            'metadata': model.get('model_info', {})
-                        }
-                        endpoints.append(endpoint_info)
-            return {'endpoints': endpoints}
-        else:
-            self.module.fail_json(msg=f"Errore nel recupero degli endpoint: {response.status_code} - {response.text}")
+        try:
+            response = self._make_request('GET', '/model/info')
+            
+            if response.status_code == 200:
+                data = response.json()
+                endpoints = []
+                if 'data' in data:
+                    for model in data['data']:
+                        if 'litellm_params' in model and 'api_base' in model['litellm_params']:
+                            # Consideriamo questo come un endpoint
+                            endpoint_info = {
+                                'endpoint_name': model.get('model_name', 'unknown'),
+                                'api_base': model['litellm_params']['api_base'],
+                                'provider': self._extract_provider(model['litellm_params']),
+                                'metadata': model.get('model_info', {})
+                            }
+                            endpoints.append(endpoint_info)
+                return {'endpoints': endpoints}
+            else:
+                # Per qualsiasi errore del server, restituiamo lista vuota e segnaliamo il problema
+                self.module.warn(f"Impossibile recuperare gli endpoint esistenti (status {response.status_code}): {response.text}")
+                return {'endpoints': []}
+        except Exception as e:
+            # In caso di eccezione, restituiamo lista vuota
+            self.module.warn(f"Errore durante il recupero degli endpoint: {str(e)}")
+            return {'endpoints': []}
 
     def get_endpoint(self, endpoint_name):
         """Recupera le informazioni di un endpoint specifico"""
